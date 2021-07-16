@@ -565,15 +565,6 @@ Ltac2 Notation "auto" n(opt(tactic(0)))
 
 Ltac2 Notation auto := auto.
 
-Ltac2 new_eauto0 n use dbs :=
-  let dbs := default_db dbs in
-  let use := default_list use in
-  Std.new_auto Std.Off n use dbs.
-
-Ltac2 Notation "new" "auto" n(opt(tactic(0)))
-  use(opt(seq("using", list1(thunk(constr), ","))))
-  dbs(opt(seq("with", hintdb))) := new_eauto0 n use dbs.
-
 Ltac2 eauto0 n p use dbs :=
   let dbs := default_db dbs in
   let use := default_list use in

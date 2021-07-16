@@ -267,8 +267,16 @@ case_item: [
 | WITH term100 OPT ("as" name) OPT [ "in" pattern200 ]
 ]
 
+type: [
+| term200
+]
+
+term_forall_or_fun: [
+| "forall" open_binders "," type
+]
+
 binder_constr: [
-| MOVETO term_forall_or_fun "forall" open_binders "," term200
+| DELETE "forall" open_binders "," term200
 | MOVETO term_forall_or_fun "fun" open_binders "=>" term200
 | MOVETO term_let "let" name binders let_type_cstr ":=" term200 "in" term200
 (*| MOVETO term_let "let" ":" ssr_mpat ":=" lconstr "in" lconstr  TAG SSR *)
@@ -308,8 +316,12 @@ term_let: [
 | MOVETO destructuring_let "let" "'" pattern200 "in" pattern200 ":=" term200 case_type "in" term200
 ]
 
+qualid_annotated: [
+| global univ_annot
+]
+
 atomic_constr: [
-| MOVETO qualid_annotated global univ_annot
+| qualid_annotated
 | MOVETO primitive_notations NUMBER
 | MOVETO primitive_notations string
 | MOVETO term_evar "_"
@@ -349,10 +361,6 @@ scope: [
 scope_delimiter: [
 | REPLACE "%" IDENT
 | WITH "%" scope_key
-]
-
-type: [
-| term200
 ]
 
 term100: [
@@ -403,6 +411,8 @@ term1: [
 ]
 
 term0: [
+| DELETE ident univ_annot
+| DELETE ident Prim.fields univ_annot
 (* @Zimmi48: This rule is a hack, according to Hugo, and should not be shown in the manual. *)
 | DELETE "{" binder_constr "}"
 | REPLACE "{|" record_declaration bar_cbrace
@@ -958,7 +968,6 @@ simple_tactic: [
 | WITH "cbn" strategy_flag simple_occurrences
 | REPLACE "fold" LIST1 constr clause_dft_concl
 | WITH "fold" LIST1 constr simple_occurrences
-
 | DELETE "cofix" ident
 | REPLACE "cofix" ident "with" LIST1 cofixdecl
 | WITH "cofix" ident OPT ( "with" LIST1 cofixdecl )
@@ -970,6 +979,10 @@ simple_tactic: [
 | DELETE "econstructor" nat_or_var
 | REPLACE "econstructor" nat_or_var "with" bindings
 | WITH "econstructor" OPT ( nat_or_var OPT ( "with" bindings ) )
+| DELETE "dependent" [ "simple" "inversion" | "inversion" | "inversion_clear" ] quantified_hypothesis as_or_and_ipat OPT [ "with" constr ]
+| "dependent" "inversion" quantified_hypothesis as_or_and_ipat OPT [ "with" constr ]
+| "dependent" "simple" "inversion" quantified_hypothesis as_or_and_ipat OPT [ "with" constr ]
+| "dependent" "inversion_clear" quantified_hypothesis as_or_and_ipat OPT [ "with" constr ]
 | DELETE "dependent" "rewrite" orient constr
 | REPLACE "dependent" "rewrite" orient constr "in" hyp
 | WITH "dependent" "rewrite" orient constr OPT ( "in" hyp )
@@ -1078,10 +1091,10 @@ simple_tactic: [
 | WITH "specialize" constr_with_bindings OPT ( "as" simple_intropattern )
 | DELETE "exists"
 | REPLACE "exists" LIST1 bindings SEP ","
-| WITH "exists" OPT ( LIST1 bindings SEP "," )
+| WITH "exists" LIST0 bindings SEP ","
 | DELETE "eexists"
 | REPLACE "eexists" LIST1 bindings SEP ","
-| WITH "eexists" OPT ( LIST1 bindings SEP "," )
+| WITH "eexists" LIST0 bindings SEP ","
 | DELETE "left"
 | REPLACE "left" "with" bindings
 | WITH "left" OPT ( "with" bindings )
@@ -1169,13 +1182,13 @@ simple_tactic: [
 (* todo: don't use DELETENT for this *)
 ne_intropatterns: [ | DELETENT ]
 
-
 or_and_intropattern: [
+| REPLACE "[" LIST1 intropatterns SEP "|" "]"
+| WITH "[" LIST0 (LIST0 intropattern) SEP "|" "]"
 | DELETE "()"
 | DELETE "(" simple_intropattern ")"
 | REPLACE "(" simple_intropattern "," LIST1 simple_intropattern SEP "," ")"
 |   WITH  "(" LIST0 simple_intropattern SEP "," ")"
-| EDIT "[" USE_NT intropattern_or LIST1 intropatterns SEP "|" "]"
 ]
 
 bar_cbrace: [
@@ -1247,26 +1260,26 @@ command: [
 | REPLACE "Add" IDENT IDENT LIST1 table_value
 | WITH "Add" setting_name LIST1 table_value
 | DELETE "Add" IDENT LIST1 table_value
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "symmetry" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "as" ident
-| "Add" "Parametric" "Relation" binders ":" constr constr OPT ( "reflexivity" "proved" "by" constr ) OPT ( "symmetry" "proved" "by" constr ) OPT ("transitivity" "proved" "by" constr ) "as" ident
-| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "as" ident
-| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Relation" constr constr "as" ident
-| DELETE "Add" "Relation" constr constr "symmetry" "proved" "by" constr "as" ident
-| DELETE "Add" "Relation" constr constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" ident
-| DELETE "Add" "Relation" constr constr "transitivity" "proved" "by" constr "as" ident
-| "Add" "Relation" constr constr OPT ( "reflexivity" "proved" "by" constr ) OPT ( "symmetry" "proved" "by" constr ) OPT ( "transitivity" "proved" "by" constr ) "as" ident
-| REPLACE "Admit" "Obligations" "of" ident
-| WITH "Admit" "Obligations" OPT ( "of" ident )
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "symmetry" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Parametric" "Relation" binders ":" constr constr "as" identref
+| "Add" "Parametric" "Relation" binders ":" constr constr OPT ( "reflexivity" "proved" "by" constr ) OPT ( "symmetry" "proved" "by" constr ) OPT ("transitivity" "proved" "by" constr ) "as" identref
+| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "as" identref
+| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Relation" constr constr "as" identref
+| DELETE "Add" "Relation" constr constr "symmetry" "proved" "by" constr "as" identref
+| DELETE "Add" "Relation" constr constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Relation" constr constr "reflexivity" "proved" "by" constr "symmetry" "proved" "by" constr "transitivity" "proved" "by" constr "as" identref
+| DELETE "Add" "Relation" constr constr "transitivity" "proved" "by" constr "as" identref
+| "Add" "Relation" constr constr OPT ( "reflexivity" "proved" "by" constr ) OPT ( "symmetry" "proved" "by" constr ) OPT ( "transitivity" "proved" "by" constr ) "as" identref
+| REPLACE "Admit" "Obligations" "of" identref
+| WITH "Admit" "Obligations" OPT ( "of" identref )
 | DELETE "Admit" "Obligations"
 | REPLACE "Create" "HintDb" IDENT; [ "discriminated" | ]
 | WITH "Create" "HintDb" IDENT; OPT "discriminated"
@@ -1286,19 +1299,19 @@ command: [
 | WITH "Hint" "Rewrite" orient LIST1 constr OPT ( "using" tactic ) OPT ( ":" LIST0 preident )
 | DELETE "Hint" "Rewrite" orient LIST1 constr
 | DELETE "Hint" "Rewrite" orient LIST1 constr "using" tactic
-| REPLACE "Next" "Obligation" "of" ident withtac
-| WITH "Next" "Obligation" OPT ( "of" ident ) withtac
+| REPLACE "Next" "Obligation" "of" identref withtac
+| WITH "Next" "Obligation" OPT ( "of" identref ) withtac
 | DELETE "Next" "Obligation" withtac
-| REPLACE "Obligation" natural "of" ident ":" lglob withtac
-| WITH "Obligation" natural OPT ( "of" ident ) OPT ( ":" type withtac )
-| DELETE "Obligation" natural "of" ident withtac
+| REPLACE "Obligation" natural "of" identref ":" lglob withtac
+| WITH "Obligation" natural OPT ( "of" identref ) OPT ( ":" type withtac )
+| DELETE "Obligation" natural "of" identref withtac
 | DELETE "Obligation" natural ":" lglob withtac
 | DELETE "Obligation" natural withtac
-| REPLACE "Obligations" "of" ident
-| WITH "Obligations" OPT ( "of" ident )
+| REPLACE "Obligations" "of" identref
+| WITH "Obligations" OPT ( "of" identref )
 | DELETE "Obligations"
-| REPLACE "Preterm" "of" ident
-| WITH "Preterm" OPT ( "of" ident )
+| REPLACE "Preterm" "of" identref
+| WITH "Preterm" OPT ( "of" identref )
 | DELETE "Preterm"
 | REPLACE "Proof" "using" section_var_expr "with" Pltac.tactic
 | WITH "Proof" "using" section_subset_expr OPT [ "with" ltac_expr5 ]
@@ -1323,13 +1336,13 @@ command: [
 | REPLACE "Solve" "All" "Obligations" "with" tactic
 | WITH "Solve" "All" "Obligations" OPT ( "with" tactic )
 | DELETE "Solve" "All" "Obligations"
-| DELETE "Solve" "Obligations" "of" ident "with" tactic
-| DELETE "Solve" "Obligations" "of" ident
+| DELETE "Solve" "Obligations" "of" identref "with" tactic
+| DELETE "Solve" "Obligations" "of" identref
 | DELETE "Solve" "Obligations" "with" tactic
 | DELETE "Solve" "Obligations"
-| "Solve" "Obligations" OPT ( "of" ident ) OPT ( "with" tactic )
-| REPLACE "Solve" "Obligation" natural "of" ident "with" tactic
-| WITH "Solve" "Obligation" natural OPT ( "of" ident ) "with" tactic
+| "Solve" "Obligations" OPT ( "of" identref ) OPT ( "with" tactic )
+| REPLACE "Solve" "Obligation" natural "of" identref "with" tactic
+| WITH "Solve" "Obligation" natural OPT ( "of" identref ) "with" tactic
 | DELETE "Solve" "Obligation" natural "with" tactic
 | DELETE "Undo"
 | DELETE "Undo" natural
@@ -1353,11 +1366,11 @@ command: [
 | WITH "Declare" "Scope" scope_name
 
 (* odd that these are in command while other notation-related ones are in syntax *)
-| REPLACE "Number" "Notation" reference reference reference OPT number_options ":" ident
+| REPLACE "Number" "Notation" reference reference reference OPT number_options ":" preident
 | WITH "Number" "Notation" reference reference reference OPT number_options ":" scope_name
-| REPLACE "Numeral" "Notation" reference reference reference ":" ident deprecated_number_modifier
+| REPLACE "Numeral" "Notation" reference reference reference ":" preident deprecated_number_modifier
 | WITH "Numeral" "Notation" reference reference reference ":" scope_name deprecated_number_modifier
-| REPLACE "String" "Notation" reference reference reference OPT string_option ":" ident
+| REPLACE "String" "Notation" reference reference reference OPT string_option ":" preident
 | WITH "String" "Notation" reference reference reference OPT string_option ":" scope_name
 
 | DELETE "Ltac2" ltac2_entry      (* was split up *)
@@ -1605,13 +1618,6 @@ tac2type_body: [
 | DELETE "::=" tac2typ_knd      (* Ltac2 plugin *)
 ]
 
-intropattern_or_list_or: [
-(* todo: where does intropattern_or_list_or come from?? *)
-| REPLACE intropattern_or_list_or "|" intropatterns
-| WITH LIST0 intropattern LIST0 ( "|" intropatterns )
-| DELETE intropatterns
-]
-
 record_declaration: [
 | DELETE fields_def
 | LIST0 field_def
@@ -1825,6 +1831,7 @@ document: [
 
 (* add in ltac and Tactic Notation tactics that appear in the doc: *)
 ltac_defined_tactics: [
+| "case_eq" constr
 | "classical_left"
 | "classical_right"
 | "contradict" ident
@@ -1849,6 +1856,8 @@ ltac_defined_tactics: [
 tactic_notation_tactics: [
 | "assert_fails" ltac_expr3
 | "assert_succeeds" ltac_expr3
+| "dependent" "destruction" ident OPT ( "generalizing" LIST1 hyp )  OPT ( "using" constr )
+| "dependent" "induction" ident OPT ( [ "generalizing" | "in" ] LIST1 hyp )  OPT ( "using" constr )
 | "dintuition" OPT ltac_expr5
 | "dtauto"
 | "field" OPT ( "[" LIST1 constr "]" )
@@ -2146,6 +2155,23 @@ subprf: [
 
 ltac2_expr: [
 | DELETE _ltac2_expr
+]
+
+opt_clause: [
+| DELETE "in" in_clause
+| DELETE "at" occs_nums
+| DELETE
+| clause_dft_concl
+]
+
+fixdecl: [
+| REPLACE "(" ident LIST0 simple_binder struct_annot ":" lconstr ")"
+| WITH "(" ident LIST0 simple_binder struct_annot ":" type ")"
+]
+
+cofixdecl: [
+| REPLACE "(" ident LIST0 simple_binder ":" lconstr ")"
+| WITH "(" ident LIST0 simple_binder ":" type ")"
 ]
 
 ssrfwdview: [
@@ -2502,6 +2528,27 @@ conversion: [
 | WITH OPT ( constr OPT ( "at" occs_nums ) "with" ) constr
 ]
 
+induction_principle: [
+| eliminator opt_clause
+]
+
+induction_clause: [
+| REPLACE destruction_arg OPT as_or_and_ipat OPT eqn_ipat opt_clause
+| WITH destruction_arg OPT as_or_and_ipat OPT eqn_ipat opt_clause
+]
+
+induction_clause_list: [
+| DELETE LIST1 induction_clause SEP "," OPT eliminator opt_clause
+| LIST1 induction_clause SEP "," OPT induction_principle
+]
+
+(* see https://github.com/coq/coq/pull/14179#discussion_r654000296 *)
+as_or_and_ipat: [
+| DELETE "as" or_and_intropattern_loc
+| DELETE "as" equality_intropattern
+| "as" or_and_intropattern
+]
+
 SPLICE: [
 | clause
 | noedit_mode
@@ -2727,8 +2774,17 @@ SPLICE: [
 | variance
 | variance_identref
 | rewriter
+| clause_dft_all
+| or_and_intropattern_loc
+| eqn_ipat
 | conversion
 | type_cast
+| opt_clause
+| struct_annot
+| fixdecl
+| cofixdecl
+| induction_clause_list
+| as_or_and_ipat
 ] (* end SPLICE *)
 
 RENAME: [
@@ -2791,6 +2847,7 @@ RENAME: [
 | strategy_flag reductions
 | delta_flag delta_reductions
 | q_strategy_flag q_reductions
+| destruction_arg induction_arg
 ]
 
 simple_tactic: [

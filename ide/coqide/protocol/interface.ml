@@ -23,6 +23,8 @@ type goal = {
   (** List of hypotheses *)
   goal_ccl : Pp.t;
   (** Goal conclusion *)
+  goal_name : string option;
+  (** User-level goal name *)
 }
 
 type evar = {

@@ -75,12 +75,19 @@ let sort_of_arity_with_constraints env sigma t =
     Reductionops.sort_of_arity env sigma t
   with Not_found | Reduction.NotArity -> retype_error NotAnArity
 
-let rec subst_type env sigma typ = function
-  | [] -> typ
+let rec subst_type env sigma subs typ = function
+  | [] -> substl subs typ
   | h::rest ->
+    (* Fast path if the type is already a product *)
+    match EConstr.kind sigma typ with
+    | Prod (_, _, c2) -> subst_type env sigma (h :: subs) c2 rest
+    | _ ->
+      let typ = substl subs typ in
       match EConstr.kind sigma (whd_all env sigma typ) with
-        | Prod (na,c1,c2) -> subst_type env sigma (subst1 h c2) rest
+        | Prod (_, _, c2) -> subst_type env sigma [h] c2 rest
         | _ -> retype_error NonFunctionalConstruction
+
+let subst_type env sigma typ args = subst_type env sigma [] typ args
 
 (* If ft is the type of f which itself is applied to args, *)
 (* [sort_of_atomic_type] computes ft[args] which has to be a sort *)
@@ -210,7 +217,7 @@ let retype ?(polyprop=true) sigma =
 
   in type_of, sort_of, type_of_global_reference_knowing_parameters
 
-let get_sort_family_of ?(truncation_style=false) ?(polyprop=true) env sigma t =
+let get_sort_family_of ?(polyprop=true) env sigma t =
   let type_of,_,type_of_global_reference_knowing_parameters = retype ~polyprop sigma in
   let rec sort_family_of env t =
     match EConstr.kind sigma t with
@@ -221,13 +228,11 @@ let get_sort_family_of ?(truncation_style=false) ?(polyprop=true) env sigma t =
         if not (is_impredicative_set env) &&
            s2 == InSet && sort_family_of env t == InType then InType else s2
     | App(f,args) when Termops.is_template_polymorphic_ind env sigma f ->
-        if truncation_style then InType else
         let t = type_of_global_reference_knowing_parameters env f args in
         Sorts.family (sort_of_atomic_type env sigma t args)
     | App(f,args) ->
         Sorts.family (sort_of_atomic_type env sigma (type_of env f) args)
     | Lambda _ | Fix _ | Construct _ -> retype_error NotAType
-    | Ind _ when truncation_style && Termops.is_template_polymorphic_ind env sigma t -> InType
     | _ ->
       Sorts.family (decomp_sort env sigma (type_of env t))
   in sort_family_of env t

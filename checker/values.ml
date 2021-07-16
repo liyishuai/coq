@@ -214,9 +214,6 @@ let v_opaque =
 
 (** kernel/declarations *)
 
-let v_impredicative_set = v_enum "impr-set" 2
-let v_engagement = v_impredicative_set
-
 let v_conv_level =
   v_sum "conv_level" 2 [|[|Int|]|]
 
@@ -245,7 +242,7 @@ let v_typing_flags =
   v_tuple "typing_flags"
     [|v_bool; v_bool; v_bool;
       v_oracle; v_bool; v_bool;
-      v_bool; v_bool; v_bool; v_bool|]
+      v_bool; v_bool; v_bool; v_bool; v_bool; v_bool|]
 
 let v_univs = v_sum "universes" 0 [|[|v_context_set|]; [|v_abs_context|]|]
 
@@ -318,7 +315,7 @@ let v_ind_pack = v_tuple "mutual_inductive_body"
     v_typing_flags|]
 
 let v_prim_ind = v_enum "prim_ind" 6
-(* Number of "Register ... as kernel.ind_..." in Int63.v and PrimFloat.v *)
+(* Number of "Register ... as kernel.ind_..." in PrimInt63.v and PrimFloat.v *)
 
 let v_prim_type = v_enum "prim_type" 3
 (* Number of constructors of prim_type in "kernel/cPrimitives.ml" *)
@@ -373,7 +370,7 @@ and v_modtype =
 let v_vodigest = Sum ("module_impl",0, [| [|String|]; [|String;String|] |])
 let v_deps = Array (v_tuple "dep" [|v_dp;v_vodigest|])
 let v_compiled_lib =
-  v_tuple "compiled" [|v_dp;v_module;v_context_set;v_deps;v_engagement|]
+  v_tuple "compiled" [|v_dp;v_module;v_context_set;v_deps|]
 
 (** Library objects *)
 

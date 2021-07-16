@@ -75,7 +75,7 @@ let locate_absolute_library dir =
     CErrors.user_err (str "File " ++ str name ++ str " not found in loadpath")
 
 let dirpath_of_string s = match String.split_on_char '.' s with
-| [] -> default_root_prefix
+| [""] -> default_root_prefix
 | dir -> DirPath.make (List.rev_map Id.of_string dir)
 
 end
@@ -114,9 +114,8 @@ let libraries_table : string DPmap.t ref = ref DPmap.empty
 let register_loaded_library senv libname file =
   let () = assert (not @@ DPmap.mem libname !libraries_table) in
   let () = libraries_table := DPmap.add libname file !libraries_table in
-  let dirname = Filename.dirname file in
-  let () = Nativelib.enable_library dirname libname in
-  let () = Nativelib.link_libraries () in
+  let prefix = Nativecode.mod_uid_of_dirpath libname ^ "." in
+  let () = Nativecode.register_native_file prefix in
   senv
 
 let mk_library sd f md digests univs =
@@ -229,7 +228,7 @@ let add_rec_path ~unix_path ~coq_root =
   else
     Feedback.msg_warning (str "Cannot open " ++ str unix_path)
 
-let init_load_path includes =
+let init_load_path_std () =
   let () = Envars.set_coqlib ~fail:(fun x -> CErrors.user_err Pp.(str x)) in
   let ( / ) = Filename.concat in
   let coqlib = Envars.coqlib () in
@@ -246,13 +245,16 @@ let init_load_path includes =
   List.iter (fun s -> add_rec_path ~unix_path:s ~coq_root:Loadpath.default_root_prefix)
     (xdg_dirs ~warn:(fun x -> Feedback.msg_warning (str x)));
   (* then directories in COQPATH *)
-  List.iter (fun s -> add_rec_path ~unix_path:s ~coq_root:Loadpath.default_root_prefix) coqpath;
-  (* then current directory *)
+  List.iter (fun s -> add_rec_path ~unix_path:s ~coq_root:Loadpath.default_root_prefix) coqpath
+
+let init_load_path ~boot ~vo_path =
+  if not boot then init_load_path_std ();
+  (* always add current directory *)
   add_path ~unix_path:"." ~coq_root:Loadpath.default_root_prefix;
   (* additional loadpath, given with -R/-Q options *)
   List.iter
     (fun (unix_path, coq_root) -> add_rec_path ~unix_path ~coq_root)
-    (List.rev includes)
+    (List.rev vo_path)
 
 let fb_handler = function
   | Feedback.{ contents; _ } ->
@@ -263,7 +265,6 @@ let fb_handler = function
 
 let init_coq () =
   let senv = Safe_typing.empty_environment in
-  let senv = Safe_typing.set_engagement Declarations.PredicativeSet senv in
   let () = Flags.set_native_compiler true in
   let senv = Safe_typing.set_native_compiler true senv in
   let () = Safe_typing.allow_delayed_constants := false in
@@ -283,7 +284,44 @@ let compile senv ~in_file =
   let out_vo = Filename.(remove_extension in_file) ^ ".vo" in
   Library.save_library_to (Safe_typing.env_of_safe_env senv) dir out_vo modl
 
+module Usage :
+sig
+  val usage : unit -> 'a
+end =
+struct
+
+let print_usage_channel co command =
+  output_string co command;
+  output_string co "coqnative options are:\n";
+  output_string co
+"  -Q dir coqdir          map physical dir to logical coqdir\
+\n  -R dir coqdir          synonymous for -Q\
+\n\
+\n\
+\n  -boot                  boot mode\
+\n  -coqlib dir            set coqnative's standard library location\
+\n  -native-output-dir     <directory> set the output directory for native objects\
+\n  -nI dir                OCaml include directories for the native compiler (default if not set) \
+\n\
+\n  -h, --help             print this list of options\
+\n"
+
+(* print the usage on standard error *)
+
+let print_usage = print_usage_channel stderr
+
+let print_usage_coqnative () =
+  print_usage "Usage: coqnative <options> file\n\n"
+
+let usage () =
+  print_usage_coqnative ();
+  flush stderr;
+  exit 1
+
+end
+
 type opts = {
+  boot : bool;
   vo_path : (string * DirPath.t) list;
   ml_path : string list;
 }
@@ -291,6 +329,11 @@ type opts = {
 let rec parse_args (args : string list) accu =
   match args with
   | [] -> CErrors.user_err (Pp.str "parse args error: missing argument")
+  | "-boot" :: rem ->
+    parse_args rem { accu with boot = true}
+  (* We ignore as we don't require Prelude explicitly *)
+  | "-noinit" :: rem ->
+    parse_args rem accu
   | ("-Q" | "-R") :: d :: p :: rem ->
     let p = Loadpath.dirpath_of_string p in
     let accu = { accu with vo_path = (d, p) :: accu.vo_path } in
@@ -301,11 +344,15 @@ let rec parse_args (args : string list) accu =
   | "-nI" :: dir :: rem ->
     let accu =  { accu with ml_path = dir :: accu.ml_path } in
     parse_args rem accu
+  |"-native-output-dir" :: dir :: rem ->
+    Nativelib.output_dir := dir;
+    parse_args rem accu
   | "-coqlib" :: s :: rem ->
     if not (Minisys.exists_dir s) then
       fatal_error (str "Directory '" ++ str s ++ str "' does not exist") false;
     Envars.set_user_coqlib s;
     parse_args rem accu
+  | ("-?"|"-h"|"-H"|"-help"|"--help") :: _ -> Usage.usage ()
   | [file] ->
     accu, file
   | args ->
@@ -315,11 +362,13 @@ let rec parse_args (args : string list) accu =
 let () =
   let _ = Feedback.add_feeder fb_handler in
   try
-    let opts = { vo_path = []; ml_path = [] } in
+    let opts = { boot = false; vo_path = []; ml_path = [] } in
     let opts, in_file = parse_args (List.tl @@ Array.to_list Sys.argv) opts in
-    let () = init_load_path (List.rev opts.vo_path) in
+    let () = init_load_path ~boot:opts.boot ~vo_path:(List.rev opts.vo_path) in
     let () = Nativelib.include_dirs := List.rev opts.ml_path in
     let senv = init_coq () in
     compile senv ~in_file
   with exn ->
-    Format.eprintf "Error: @[%a@]@\n%!" Pp.pp_with (CErrors.print exn)
+    Format.eprintf "Error: @[%a@]@\n%!" Pp.pp_with (CErrors.print exn);
+    let exit_code = if (CErrors.is_anomaly exn) then 129 else 1 in
+    exit exit_code

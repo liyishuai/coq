@@ -1005,14 +1005,8 @@ let int63_of_pos_bigint ?loc n =
   let i = int63_of_pos_bigint n in
   mkInt i
 
-let error_negative ?loc =
-  CErrors.user_err ?loc ~hdr:"interp_int63" (Pp.str "int63 are only non-negative numbers.")
-
 let error_overflow ?loc n =
   CErrors.user_err ?loc ~hdr:"interp_int63" Pp.(str "overflow in int63 literal: " ++ str (Z.to_string n))
-
-let error_underflow ?loc n =
-  CErrors.user_err ?loc ~hdr:"interp_int63" Pp.(str "underflow in int63 literal: " ++ str (Z.to_string n))
 
 let coqpos_neg_int63_of_bigint ?loc ind (sign,n) =
   let uint = int63_of_pos_bigint ?loc n in
@@ -1021,13 +1015,10 @@ let coqpos_neg_int63_of_bigint ?loc ind (sign,n) =
 
 let interp_int63 ?loc ind n =
   let sign = if Z.(compare n zero >= 0) then SPlus else SMinus in
-  let n = Z.abs n in
-  if Z.(leq zero n)
-  then
-    if Z.(lt n (pow z_two 63))
-    then coqpos_neg_int63_of_bigint ?loc ind (sign,n)
-    else match sign with SPlus -> error_overflow ?loc n | SMinus -> error_underflow ?loc n
-  else error_negative ?loc
+  let an = Z.abs n in
+  if Z.(lt an (pow z_two 63))
+  then coqpos_neg_int63_of_bigint ?loc ind (sign,an)
+  else error_overflow ?loc n
 
 let bigint_of_int63 c =
   match Constr.kind c with
@@ -2217,6 +2208,12 @@ let rec raw_analyze_anonymous_notation_tokens = function
 
 (* Interpret notations with a recursive component *)
 
+type notation_symbols = {
+  recvars : (Id.t * Id.t) list; (* pairs (x,y) as in [ x ; .. ; y ] *)
+  mainvars : Id.t list; (* variables non involved in a recursive pattern *)
+  symbols : symbol list; (* the decomposition of the notation into terminals and nonterminals *)
+}
+
 let out_nt = function NonTerminal x -> x | _ -> assert false
 
 let msg_expected_form_of_recursive_notation =
@@ -2265,10 +2262,10 @@ let get_notation_vars l =
 
 let decompose_raw_notation ntn =
   let l = split_notation_string ntn in
-  let l = raw_analyze_notation_tokens l in
-  let recvars,l = interp_list_parser [] l in
-  let vars = get_notation_vars l in
-  recvars, vars, l
+  let symbols = raw_analyze_notation_tokens l in
+  let recvars, symbols = interp_list_parser [] symbols in
+  let mainvars = get_notation_vars symbols in
+  {recvars; mainvars; symbols}
 
 let interpret_notation_string ntn =
   (* We collect the possible interpretations of a notation string depending on whether it is

@@ -126,7 +126,7 @@ let autorewrite ?(conds=Naive) tac_main lbas =
        Tacticals.New.tclTHEN tac
         (one_base (fun dir c tac ->
           let tac = (tac, conds) in
-            general_rewrite dir AllOccurrences true false ~tac (EConstr.of_constr c))
+            general_rewrite ~where:None ~l2r:dir AllOccurrences ~freeze:true ~dep:false ~with_evars:false ~tac (EConstr.of_constr c, Tactypes.NoBindings))
           tac_main bas))
       (Proofview.tclUNIT()) lbas))
 
@@ -136,7 +136,7 @@ let autorewrite_multi_in ?(conds=Naive) idl tac_main lbas =
   let _ = List.map (fun id -> Tacmach.New.pf_get_hyp id gl) idl in
   let general_rewrite_in id dir cstr tac =
     let cstr = EConstr.of_constr cstr in
-    general_rewrite_in dir AllOccurrences true ~tac:(tac, conds) false id cstr false
+    general_rewrite ~where:(Some id) ~l2r:dir AllOccurrences ~freeze:true ~dep:false ~with_evars:false ~tac:(tac, conds) (cstr, Tactypes.NoBindings)
   in
  Tacticals.New.tclMAP (fun id ->
   Tacticals.New.tclREPEAT_MAIN (Proofview.tclPROGRESS
@@ -260,8 +260,10 @@ let warn_deprecated_hint_rewrite_without_locality =
     (fun () -> strbrk "The default value for rewriting hint locality is currently \
     \"local\" in a section and \"global\" otherwise, but is scheduled to change \
     in a future release. For the time being, adding rewriting hints outside of sections \
-    without specifying an explicit locality is therefore deprecated. It is \
-    recommended to use \"export\" whenever possible.")
+    without specifying an explicit locality attribute is therefore deprecated. It is \
+    recommended to use \"export\" whenever possible. Use the attributes \
+    #[local], #[global] and #[export] depending on your choice. For example: \
+    \"#[export] Hint Rewrite foo : bar.\"")
 
 (* To add rewriting rules to a base *)
 let add_rew_rules ~locality base lrul =

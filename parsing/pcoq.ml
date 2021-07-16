@@ -199,28 +199,6 @@ let parse_string f ?loc x =
   let strm = Stream.of_string x in
   Entry.parse f (Parsable.make ?loc strm)
 
-(* universes not used by Coq build but still used by some plugins *)
-type gram_universe = string
-
-let utables : (string, unit) Hashtbl.t =
-  Hashtbl.create 97
-
-let create_universe u =
-  let () = Hashtbl.add utables u () in
-  u
-
-let uprim   = create_universe "prim" [@@deprecated "Deprecated in 8.13"]
-let uconstr = create_universe "constr" [@@deprecated "Deprecated in 8.13"]
-let utactic = create_universe "tactic" [@@deprecated "Deprecated in 8.13"]
-
-let get_univ u =
-  if Hashtbl.mem utables u then u
-  else raise Not_found
-
-let new_entry _ s =
-  let e = Entry.make s in
-  e
-
 module GrammarObj =
 struct
   type ('r, _, _) obj = 'r Entry.t
@@ -252,11 +230,7 @@ let create_generic_entry2 (type a) s (etyp : a raw_abstract_argument_type) : a E
   let () = Grammar.register0 t e in
   e
 
-let create_generic_entry (type a) _ s (etyp : a raw_abstract_argument_type) : a Entry.t =
-  create_generic_entry2 s etyp
-
 (* Initial grammar entries *)
-
 module Prim =
   struct
 
@@ -271,6 +245,7 @@ module Prim =
     let string = Entry.create "string"
     let lstring = Entry.create "lstring"
     let reference = Entry.create "reference"
+    let fields = Entry.create "fields"
     let by_notation = Entry.create "by_notation"
     let smart_global = Entry.create "smart_global"
     let strategy_level = Entry.create "strategy_level"
@@ -506,6 +481,7 @@ let () =
   Grammar.register0 wit_int (Prim.integer);
   Grammar.register0 wit_string (Prim.string);
   Grammar.register0 wit_pre_ident (Prim.preident);
+  Grammar.register0 wit_identref (Prim.identref);
   Grammar.register0 wit_ident (Prim.ident);
   Grammar.register0 wit_hyp (Prim.hyp);
   Grammar.register0 wit_ref (Prim.reference);

@@ -65,7 +65,7 @@ let print_query opts = let open Coqargs in function
   | PrintHelp h -> Usage.print_usage stderr h
   | PrintConfig ->
     let () = init_coqlib opts in
-    Envars.print_config stdout Coq_config.all_src_dirs
+    Envars.print_config stdout
 
 let parse_arguments ~parse_extra ~usage ?(initial_args=Coqargs.default) () =
   let opts, extras =
@@ -103,7 +103,7 @@ let init_runtime opts =
   Mltop.init_known_plugins ();
 
   (* Configuration *)
-  Global.set_engagement opts.config.logic.impredicative_set;
+  Global.set_impredicative_set opts.config.logic.impredicative_set;
   Global.set_indices_matter opts.config.logic.indices_matter;
   Global.set_check_universes (not opts.config.logic.type_in_type);
   Global.set_VM opts.config.enable_VM;

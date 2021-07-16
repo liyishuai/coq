@@ -163,8 +163,8 @@ let instantiate_lemma_all frzevars gl c ty l l2r concl =
       ((if l2r then c1 else c2),concl)
   in List.map try_occ occs
 
-let instantiate_lemma gl c ty l l2r concl =
-  let sigma, ct = pf_type_of gl c in
+let instantiate_lemma gl c ct l l2r concl =
+  let sigma = Proofview.Goal.sigma gl in
   let t = try snd (reduce_to_quantified_ind (pf_env gl) sigma ct) with UserError _ -> ct in
   let eqclause = Clenv.make_clenv_binding (pf_env gl) sigma (c,t) l in
   eqclause
@@ -434,8 +434,7 @@ let leibniz_rewrite_ebindings_clause cls lft2rgt tac c t l with_evars frzevars d
   let dep = dep_proof_ok && dep_fun evd c type_of_cls in
   find_elim hdcncl lft2rgt dep cls (Some t) >>= fun elim ->
       general_elim_clause with_evars frzevars tac cls c t l
-      (match lft2rgt with None -> false | Some b -> b)
-      {elimindex = None; elimbody = (elim,NoBindings) }
+      (match lft2rgt with None -> false | Some b -> b) (ElimTerm elim)
   end
 
 let adjust_rewriting_direction args lft2rgt =
@@ -454,8 +453,8 @@ let rewrite_side_tac tac sidetac = side_tac tac (Option.map fst sidetac)
 
 (* Main function for dispatching which kind of rewriting it is about *)
 
-let general_rewrite_ebindings_clause cls lft2rgt occs frzevars dep_proof_ok ?tac
-    ((c,l) : constr with_bindings) with_evars =
+let general_rewrite ~where:cls ~l2r:lft2rgt occs ~freeze:frzevars ~dep:dep_proof_ok ~with_evars ?tac
+    ((c,l) : constr with_bindings) =
   if not (Locusops.is_all_occurrences occs) then (
     rewrite_side_tac (Hook.get forward_general_setoid_rewrite_clause cls lft2rgt occs (c,l) ~new_goals:[]) tac)
   else
@@ -490,28 +489,6 @@ let general_rewrite_ebindings_clause cls lft2rgt occs frzevars dep_proof_ok ?tac
             end
     end
 
-let general_rewrite_ebindings =
-  general_rewrite_ebindings_clause None
-
-let general_rewrite_bindings l2r occs frzevars dep_proof_ok ?tac (c,bl) =
-  general_rewrite_ebindings_clause None l2r occs
-    frzevars dep_proof_ok ?tac (c,bl)
-
-let general_rewrite l2r occs frzevars dep_proof_ok ?tac c =
-  general_rewrite_bindings l2r occs
-    frzevars dep_proof_ok ?tac (c,NoBindings) false
-
-let general_rewrite_ebindings_in l2r occs frzevars dep_proof_ok ?tac id =
-  general_rewrite_ebindings_clause (Some id) l2r occs frzevars dep_proof_ok ?tac
-
-let general_rewrite_bindings_in l2r occs frzevars dep_proof_ok ?tac id (c,bl) =
-  general_rewrite_ebindings_clause (Some id) l2r occs
-    frzevars dep_proof_ok ?tac (c,bl)
-
-let general_rewrite_in l2r occs frzevars dep_proof_ok ?tac id c =
-  general_rewrite_ebindings_clause (Some id) l2r occs
-    frzevars dep_proof_ok ?tac (c,NoBindings)
-
 let general_rewrite_clause l2r with_evars ?tac c cl =
   let occs_of = occurrences_map (List.fold_left
     (fun acc ->
@@ -526,12 +503,12 @@ let general_rewrite_clause l2r with_evars ?tac c cl =
           | [] -> Proofview.tclUNIT ()
           | ((occs,id),_) :: l ->
             tclTHENFIRST
-              (general_rewrite_ebindings_in l2r (occs_of occs) false true ?tac id c with_evars)
+              (general_rewrite ~where:(Some id) ~l2r (occs_of occs) ~freeze:false ~dep:true ~with_evars ?tac c)
               (do_hyps l)
         in
         if cl.concl_occs == NoOccurrences then do_hyps l else
           tclTHENFIRST
-            (general_rewrite_ebindings l2r (occs_of cl.concl_occs) false true ?tac c with_evars)
+            (general_rewrite ~where:None ~l2r (occs_of cl.concl_occs) ~freeze:false ~dep:true ~with_evars ?tac c)
             (do_hyps l)
     | None ->
         (* Otherwise, if we are told to rewrite in all hypothesis via the
@@ -540,7 +517,7 @@ let general_rewrite_clause l2r with_evars ?tac c cl =
           | [] -> tclZEROMSG (Pp.str"Nothing to rewrite.")
           | id :: l ->
             tclIFTHENFIRSTTRYELSEMUST
-             (general_rewrite_ebindings_in l2r AllOccurrences false true ?tac id c with_evars)
+             (general_rewrite ~where:(Some id) ~l2r AllOccurrences ~freeze:false ~dep:true ~with_evars ?tac c)
              (do_hyps_atleastonce l)
         in
         let do_hyps =
@@ -556,7 +533,7 @@ let general_rewrite_clause l2r with_evars ?tac c cl =
         in
         if cl.concl_occs == NoOccurrences then do_hyps else
           tclIFTHENFIRSTTRYELSEMUST
-           (general_rewrite_ebindings l2r (occs_of cl.concl_occs) false true ?tac c with_evars)
+           (general_rewrite ~where:None ~l2r (occs_of cl.concl_occs) ~freeze:false ~dep:true ~with_evars ?tac c)
            do_hyps
 
 let apply_special_clear_request clear_flag f =
@@ -602,8 +579,10 @@ let general_multi_rewrite with_evars l cl tac =
           (tclTHEN (doN l2r c m) (apply_special_clear_request clear_flag c)) (loop l)
   in loop l
 
-let rewriteLR = general_rewrite true AllOccurrences true true
-let rewriteRL = general_rewrite false AllOccurrences true true
+let rewriteLR c =
+  general_rewrite ~where:None ~l2r:true AllOccurrences ~freeze:true ~dep:true ~with_evars:false (c, NoBindings)
+let rewriteRL c =
+  general_rewrite ~where:None ~l2r:false AllOccurrences ~freeze:true ~dep:true ~with_evars:false (c, NoBindings)
 
 (* Replacing tactics *)
 
@@ -749,15 +728,49 @@ let keep_proof_equalities = function
   | None -> !keep_proof_equalities_for_injection
   | Some flags -> flags.keep_proof_equalities
 
+module KeepEqualities =
+struct
+  type t = inductive
+  module Set = Indset_env
+  let encode _env r = Nametab.global_inductive r
+  let subst subst obj = Mod_subst.subst_ind subst obj
+  let printer ind = Nametab.pr_global_env Id.Set.empty (GlobRef.IndRef ind)
+  let key = ["Keep"; "Equalities"]
+  let title = "Prop-valued inductive types for which injection keeps equality proofs"
+  let member_message ind b =
+    let b = if b then mt () else str "not " in
+    str "Equality proofs over " ++ (printer ind) ++
+      str " are " ++ b ++ str "kept by injection"
+end
+
+module KeepEqualitiesTable = Goptions.MakeRefTable(KeepEqualities)
+
+let set_keep_equality = KeepEqualitiesTable.set
+
 (* [keep_proofs] is relevant for types in Prop with elimination in Type *)
 (* In particular, it is relevant for injection but not for discriminate *)
+
+let keep_head_inductive sigma c =
+  (* Note that we do not weak-head normalize c before checking it is an
+     applied inductive, because [get_sort_family_of] did not use to either.
+     As a matter of fact, if it reduces to an applied template inductive
+     type but is not syntactically equal to it, it will fail to project. *)
+  let _, hd = EConstr.decompose_prod sigma c in
+  let hd, _ = Termops.decompose_app_vect sigma hd in
+  match EConstr.kind sigma hd with
+  | Ind (ind, _) -> KeepEqualitiesTable.active ind
+  | _ -> false
 
 let find_positions env sigma ~keep_proofs ~no_discr t1 t2 =
   let project env sorts posn t1 t2 =
     let ty1 = get_type_of env sigma t1 in
-    let s = get_sort_family_of ~truncation_style:true env sigma ty1 in
-    if List.mem_f Sorts.family_equal s sorts
-    then [(List.rev posn,t1,t2)] else []
+    let keep =
+      if keep_head_inductive sigma ty1 then true
+      else
+        let s = get_sort_family_of env sigma ty1 in
+        List.mem_f Sorts.family_equal s sorts
+    in
+    if keep then [(List.rev posn,t1,t2)] else []
   in
   let rec findrec sorts posn t1 t2 =
     let hd1,args1 = whd_all_stack env sigma t1 in
@@ -1788,7 +1801,7 @@ let subst_one dep_proof_ok x (hyp,rhs,dir) =
   tclTHENLIST
     ((if need_rewrite then
       [revert (List.map snd dephyps);
-       general_rewrite dir AtLeastOneOccurrence true dep_proof_ok (mkVar hyp);
+       general_rewrite ~where:None ~l2r:dir AtLeastOneOccurrence ~freeze:true ~dep:dep_proof_ok ~with_evars:false (mkVar hyp, NoBindings);
        (tclMAP (fun (dest,id) -> intro_move (Some id) dest) dephyps)]
       else
        [Proofview.tclUNIT ()]) @

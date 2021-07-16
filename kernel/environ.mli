@@ -41,7 +41,7 @@ type link_info =
 
 type key = int CEphemeron.key option ref
 
-type constant_key = Opaqueproof.opaque constant_body * (link_info ref * key)
+type constant_key = constant_body * (link_info ref * key)
 
 type mind_key = mutual_inductive_body * link_info ref
 
@@ -57,13 +57,6 @@ module Globals : sig
 
   val view : t -> view
 end
-
-type stratification = {
-  env_universes : UGraph.t;
-  env_sprop_allowed : bool;
-  env_universes_lbound : UGraph.Bound.t;
-  env_engagement : engagement
-}
 
 type named_context_val = private {
   env_named_ctx : Constr.named_context;
@@ -85,7 +78,8 @@ type env = private {
   env_named_context : named_context_val; (* section variables *)
   env_rel_context   : rel_context_val;
   env_nb_rel        : int;
-  env_stratification : stratification;
+  env_universes : UGraph.t;
+  env_universes_lbound : UGraph.Bound.t;
   env_typing_flags  : typing_flags;
   retroknowledge : Retroknowledge.retroknowledge;
   indirect_pterms : Opaqueproof.opaquetab;
@@ -111,7 +105,6 @@ val opaque_tables : env -> Opaqueproof.opaquetab
 val set_opaque_tables : env -> Opaqueproof.opaquetab -> env
 
 
-val engagement    : env -> engagement
 val typing_flags    : env -> typing_flags
 val is_impredicative_set : env -> bool
 val type_in_type : env -> bool
@@ -196,20 +189,20 @@ val reset_with_named_context : named_context_val -> env -> env
 val pop_rel_context : int -> env -> env
 
 (** Useful for printing *)
-val fold_constants : (Constant.t -> Opaqueproof.opaque constant_body -> 'a -> 'a) -> env -> 'a -> 'a
+val fold_constants : (Constant.t -> constant_body -> 'a -> 'a) -> env -> 'a -> 'a
 val fold_inductives : (MutInd.t -> Declarations.mutual_inductive_body -> 'a -> 'a) -> env -> 'a -> 'a
 
 (** {5 Global constants }
   {6 Add entries to global environment } *)
 
-val add_constant : Constant.t -> Opaqueproof.opaque constant_body -> env -> env
-val add_constant_key : Constant.t -> Opaqueproof.opaque constant_body -> link_info ->
+val add_constant : Constant.t -> constant_body -> env -> env
+val add_constant_key : Constant.t -> constant_body -> link_info ->
   env -> env
 val lookup_constant_key :  Constant.t -> env -> constant_key
 
 (** Looks up in the context of global constant names
    raises an anomaly if the required path is not found *)
-val lookup_constant    : Constant.t -> env -> Opaqueproof.opaque constant_body
+val lookup_constant    : Constant.t -> env -> constant_body
 val evaluable_constant : Constant.t -> env -> bool
 
 val mem_constant : Constant.t -> env -> bool
@@ -349,8 +342,8 @@ val push_subgraph : Univ.ContextSet.t -> env -> env
    also checks that they do not imply new transitive constraints
    between pre-existing universes in [env]. *)
 
-val set_engagement : engagement -> env -> env
 val set_typing_flags : typing_flags -> env -> env
+val set_impredicative_set : bool -> env -> env
 val set_cumulative_sprop : bool -> env -> env
 val set_type_in_type : bool -> env -> env
 val set_allow_sprop : bool -> env -> env

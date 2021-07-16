@@ -134,8 +134,10 @@ let warn_deprecated_instance_without_locality =
     (fun () -> strbrk "The default value for instance locality is currently \
     \"local\" in a section and \"global\" otherwise, but is scheduled to change \
     in a future release. For the time being, adding instances outside of sections \
-    without specifying an explicit locality is therefore deprecated. It is \
-    recommended to use \"export\" whenever possible.")
+    without specifying an explicit locality attribute is therefore deprecated. It is \
+    recommended to use \"export\" whenever possible. Use the attributes \
+    #[local], #[global] and #[export] depending on your choice. For example: \
+    \"#[export] Instance Foo : Bar := baz.\"")
 
 let add_instance cl info glob impl =
   let global = match glob with
@@ -242,7 +244,7 @@ let discharge_class (_,cl) =
   in
   try
     let info = abs_context cl in
-    let ctx = info.Section.abstr_ctx in
+    let ctx = info.Declarations.abstr_ctx in
     let ctx, subst = rel_of_variable_context ctx in
     let usubst, cl_univs' = Lib.discharge_abstract_universe_context info cl.cl_univs in
     let context = discharge_context ctx (subst, usubst) cl.cl_context in
