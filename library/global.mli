@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -64,7 +64,7 @@ val add_mind :
 (** Extra universe constraints *)
 val add_constraints : Univ.Constraints.t -> unit
 
-val push_context_set : strict:bool -> Univ.ContextSet.t -> unit
+val push_context_set : Univ.ContextSet.t -> unit
 
 (** Non-interactive modules and module types *)
 

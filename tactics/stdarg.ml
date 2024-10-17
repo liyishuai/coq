@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -78,3 +78,21 @@ let wit_preident = wit_pre_ident
 let wit_reference = wit_ref
 let wit_global = wit_ref
 let wit_clause = wit_clause_dft_concl
+
+(** Registering grammar of generic arguments *)
+
+let () =
+  let open Pcoq in
+  register_grammar wit_nat Prim.natural;
+  register_grammar wit_int Prim.integer;
+  register_grammar wit_string Prim.string;
+  register_grammar wit_pre_ident Prim.preident;
+  register_grammar wit_identref Prim.identref;
+  register_grammar wit_ident Prim.ident;
+  register_grammar wit_hyp Prim.hyp;
+  register_grammar wit_ref Prim.reference;
+  register_grammar wit_smart_global Prim.smart_global;
+  register_grammar wit_sort_family Constr.sort_family;
+  register_grammar wit_constr Constr.constr;
+  register_grammar wit_open_binders Constr.open_binders;
+  ()

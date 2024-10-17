@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -74,34 +74,34 @@ let format = repr_ext val_format
 let core_prefix path n = KerName.make path (Label.of_id (Id.of_string_soft n))
 
 let std_core n = core_prefix Tac2env.std_prefix n
-let coq_core n = core_prefix Tac2env.coq_prefix n
+let rocq_core n = core_prefix Tac2env.rocq_prefix n
 
 module Core =
 struct
 
-let t_unit = coq_core "unit"
+let t_unit = rocq_core "unit"
 let v_unit = Tac2ffi.of_unit ()
 
-let t_int = coq_core "int"
-let t_string = coq_core "string"
-let t_array = coq_core "array"
-let t_list = coq_core "list"
-let t_constr = coq_core "constr"
-let t_preterm = coq_core "preterm"
-let t_pattern = coq_core "pattern"
-let t_ident = coq_core "ident"
-let t_option = coq_core "option"
-let t_exn = coq_core "exn"
+let t_int = rocq_core "int"
+let t_string = rocq_core "string"
+let t_array = rocq_core "array"
+let t_list = rocq_core "list"
+let t_constr = rocq_core "constr"
+let t_preterm = rocq_core "preterm"
+let t_pattern = rocq_core "pattern"
+let t_ident = rocq_core "ident"
+let t_option = rocq_core "option"
+let t_exn = rocq_core "exn"
 let t_reference = std_core "reference"
 
-let c_nil = coq_core "[]"
-let c_cons = coq_core "::"
+let c_nil = rocq_core "[]"
+let c_cons = rocq_core "::"
 
-let c_none = coq_core "None"
-let c_some = coq_core "Some"
+let c_none = rocq_core "None"
+let c_some = rocq_core "Some"
 
-let c_true = coq_core "true"
-let c_false = coq_core "false"
+let c_true = rocq_core "true"
+let c_false = rocq_core "false"
 
 end
 
@@ -166,19 +166,19 @@ let projection = repr_ext val_projection
 (** Stdlib exceptions *)
 
 let err_notfocussed =
-  Tac2interp.LtacError (coq_core "Not_focussed", [||])
+  Tac2interp.LtacError (rocq_core "Not_focussed", [||])
 
 let err_outofbounds =
-  Tac2interp.LtacError (coq_core "Out_of_bounds", [||])
+  Tac2interp.LtacError (rocq_core "Out_of_bounds", [||])
 
 let err_notfound =
-  Tac2interp.LtacError (coq_core "Not_found", [||])
+  Tac2interp.LtacError (rocq_core "Not_found", [||])
 
 let err_matchfailure =
-  Tac2interp.LtacError (coq_core "Match_failure", [||])
+  Tac2interp.LtacError (rocq_core "Match_failure", [||])
 
 let err_division_by_zero =
-  Tac2interp.LtacError (coq_core "Division_by_zero", [||])
+  Tac2interp.LtacError (rocq_core "Division_by_zero", [||])
 
 (** Helper functions *)
 
@@ -1133,6 +1133,15 @@ let () =
     (str "Hypothesis " ++ quote (Id.print id) ++ str " not found") (* FIXME: Do something more sensible *)
 
 let () =
+  define "hyp_value" (ident @-> tac (option constr)) @@ fun id ->
+  pf_apply @@ fun env _ ->
+  match EConstr.lookup_named id env with
+  | d -> return (Context.Named.Declaration.get_value d)
+  | exception Not_found ->
+    Tacticals.tclZEROMSG
+    (str "Hypothesis " ++ quote (Id.print id) ++ str " not found") (* FIXME: Do something more sensible *)
+
+let () =
   define "hyps" (unit @-> tac valexpr) @@ fun _ ->
   pf_apply @@ fun env _ ->
   let open Context in
@@ -1601,20 +1610,33 @@ let to_lvar ist =
 
 let gtypref kn = GTypRef (Other kn, [])
 
-let intern_constr ist c =
-  let (_, (c, _)) = Genintern.intern Stdarg.wit_constr ist c in
-  let v = match DAst.get c with
-    | GGenarg (GenArg (Glbwit tag, v)) ->
-      begin match genarg_type_eq tag wit_ltac2_var_quotation with
-      | Some Refl ->
-        begin match (fst v) with
-        | ConstrVar -> GlbTacexpr (GTacVar (snd v))
-        | _ -> GlbVal c
-        end
-      | None -> GlbVal c
+let of_glob_constr (c:Glob_term.glob_constr) =
+  match DAst.get c with
+  | GGenarg (GenArg (Glbwit tag, v)) ->
+    begin match genarg_type_eq tag wit_ltac2_var_quotation with
+    | Some Refl ->
+      begin match (fst v) with
+      | ConstrVar -> GlbTacexpr (GTacVar (snd v))
+      | _ -> GlbVal c
       end
-    | _ -> GlbVal c
-  in
+    | None -> GlbVal c
+    end
+  | _ -> GlbVal c
+
+let intern_constr ist c =
+  let {Genintern.ltacvars=lfun; genv=env; extra; intern_sign; strict_check} = ist in
+  let scope = Pretyping.WithoutTypeConstraint in
+  let ltacvars = {
+    Constrintern.ltac_vars = lfun;
+    ltac_bound = Id.Set.empty;
+    ltac_extra = extra;
+  } in
+  let c' = Constrintern.intern_core scope ~strict_check ~ltacvars env (Evd.from_env env) intern_sign c in
+  c'
+
+let intern_constr_tacexpr ist c =
+  let c = intern_constr ist c in
+  let v = of_glob_constr c in
   (v, gtypref t_constr)
 
 let interp_constr flags ist c =
@@ -1628,7 +1650,7 @@ let interp_constr flags ist c =
   end
 
 let () =
-  let intern = intern_constr in
+  let intern = intern_constr_tacexpr in
   let interp ist c = interp_constr constr_flags ist c in
   let print env sigma c = str "constr:(" ++ Printer.pr_lglob_constr_env env sigma c ++ str ")" in
   let raw_print env sigma c = str "constr:(" ++ Ppconstr.pr_constr_expr env sigma c ++ str ")" in
@@ -1643,7 +1665,7 @@ let () =
   define_ml_object Tac2quote.wit_constr obj
 
 let () =
-  let intern = intern_constr in
+  let intern = intern_constr_tacexpr in
   let interp ist c = interp_constr open_constr_no_classes_flags ist c in
   let print env sigma c = str "open_constr:(" ++ Printer.pr_lglob_constr_env env sigma c ++ str ")" in
   let raw_print env sigma c = str "open_constr:(" ++ Ppconstr.pr_constr_expr env sigma c ++ str ")" in
@@ -1706,7 +1728,7 @@ let () =
 
 let () =
   let intern ist c =
-    let (_, (c, _)) = Genintern.intern Stdarg.wit_constr ist c in
+    let c = intern_constr ist c in
     (GlbVal (Id.Set.empty,c), gtypref t_preterm)
   in
   let interp env (ids,c) =
@@ -1876,8 +1898,7 @@ let () =
         | PatternVar -> str "pattern:"
       in
       str "$" ++ ppkind ++ Id.print id) in
-  let pr_top x = Util.Empty.abort x in
-  Genprint.register_print0 wit_ltac2_var_quotation pr_raw pr_glb pr_top
+  Genprint.register_noval_print0 wit_ltac2_var_quotation pr_raw pr_glb
 
 let warn_missing_notation_variable =
   CWarnings.create ~name:"ltac2-missing-notation-var" ~category:CWarnings.CoreCategories.ltac2
@@ -1928,8 +1949,7 @@ let () =
     in
     Genprint.PrinterBasic Pp.(fun _env _sigma -> ids ++ Tac2print.pr_glbexpr ~avoid:Id.Set.empty e)
   in
-  let pr_top x = Util.Empty.abort x in
-  Genprint.register_print0 wit_ltac2in1 pr_raw pr_glb pr_top
+  Genprint.register_noval_print0 wit_ltac2in1 pr_raw pr_glb
 
 let () =
   let pr_raw e = Genprint.PrinterBasic (fun _env _sigma ->
@@ -1951,8 +1971,7 @@ let () =
     *)
     Genprint.PrinterBasic Pp.(fun _env _sigma -> ids ++ Tac2print.pr_glbexpr ~avoid:Id.Set.empty e)
   in
-  let pr_top e = Util.Empty.abort e in
-  Genprint.register_print0 wit_ltac2_constr pr_raw pr_glb pr_top
+  Genprint.register_noval_print0 wit_ltac2_constr pr_raw pr_glb
 
 (** Built-in notation scopes *)
 

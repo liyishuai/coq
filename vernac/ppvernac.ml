@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -648,7 +648,11 @@ let pr_printable = function
       if b then "Print Sorted Universes"
       else "Print Universes"
     in
-    let pr_subgraph = prlist_with_sep spc pr_qualid in
+    let pr_debug_univ_name = function
+      | NamedUniv x -> pr_qualid x
+      | RawUniv { CAst.v = x } -> qstring x
+    in
+    let pr_subgraph = prlist_with_sep spc pr_debug_univ_name in
     keyword cmd ++ pr_opt pr_subgraph g ++ pr_opt str fopt
   | PrintName (qid,udecl) ->
     keyword "Print" ++ spc()  ++ pr_smart_global qid ++ pr_full_univ_name_list udecl

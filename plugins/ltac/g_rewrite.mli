@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -34,6 +34,6 @@ val rewstrategy : Tacexpr.raw_strategy Pcoq.Entry.t
 
 type binders_argtype = Constrexpr.local_binder_expr list
 
-val wit_binders : binders_argtype Genarg.uniform_genarg_type
+val wit_binders : binders_argtype Genarg.vernac_genarg_type
 
 val binders : binders_argtype Pcoq.Entry.t

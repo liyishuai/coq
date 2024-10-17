@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -344,8 +344,10 @@ let interp_ml_object t =
 
 (** Absolute paths *)
 
-let coq_prefix =
+let rocq_prefix =
   MPfile (DirPath.make (List.map Id.of_string ["Init"; "Ltac2"]))
+
+let coq_prefix = rocq_prefix
 
 let std_prefix =
   MPfile (DirPath.make (List.map Id.of_string ["Std"; "Ltac2"]))
@@ -365,11 +367,6 @@ let wit_ltac2in1_val = Genarg.make0 "ltac2in1val"
 let wit_ltac2_constr = Genarg.make0 "ltac2:in-constr"
 let wit_ltac2_var_quotation = Genarg.make0 "ltac2:quotation"
 let wit_ltac2_val = Genarg.make0 "ltac2:value"
-
-let () = Geninterp.register_val0 wit_ltac2in1 None
-let () = Geninterp.register_val0 wit_ltac2in1_val None
-let () = Geninterp.register_val0 wit_ltac2_constr None
-let () = Geninterp.register_val0 wit_ltac2_var_quotation None
 
 let is_constructor_id id =
   let id = Id.to_string id in

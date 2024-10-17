@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -77,11 +77,7 @@ val declare_extra_genarg_pprule_with_level :
   'a raw_extra_genarg_printer_with_level ->
   'b glob_extra_genarg_printer_with_level ->
   'c extra_genarg_printer_with_level ->
-  (* surroounded *) entry_relative_level -> (* non-surroounded *) entry_relative_level -> unit
-
-val declare_extra_vernac_genarg_pprule :
-  ('a, 'b, 'c) genarg_type ->
-  'a raw_extra_genarg_printer -> unit
+  (* surrounded *) entry_relative_level -> (* non-surrounded *) entry_relative_level -> unit
 
 type grammar_terminals = Genarg.ArgT.any Extend.user_symbol grammar_tactic_prod_item_expr list
 

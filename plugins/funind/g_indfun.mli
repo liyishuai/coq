@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -42,7 +42,7 @@ val wit_auto_using' :
 val auto_using' : Constrexpr.constr_expr list Pcoq.Entry.t
 
 val wit_function_fix_definition :
-  Vernacexpr.fixpoint_expr Loc.located Genarg.uniform_genarg_type
+  Vernacexpr.fixpoint_expr Loc.located Genarg.vernac_genarg_type
 
 val function_fix_definition :
   Vernacexpr.fixpoint_expr Loc.located Pcoq.Entry.t

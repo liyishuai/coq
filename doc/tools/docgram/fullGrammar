@@ -625,9 +625,7 @@ command: [
 | "Locate" "Ltac" reference
 | "Ltac" LIST1 ltac_tacdef_body SEP "with"
 | "Print" "Ltac" "Signatures"
-| "Obligation" natural "of" identref ":" lglob withtac
 | "Obligation" natural "of" identref withtac
-| "Obligation" natural ":" lglob withtac
 | "Obligation" natural withtac
 | "Next" "Obligation" "of" identref withtac
 | "Next" "Obligation" withtac
@@ -1443,8 +1441,13 @@ printable: [
 | "Registered" "Schemes"
 ]
 
+debug_univ_name: [
+| reference
+| STRING
+]
+
 printunivs_subgraph: [
-| "Subgraph" "(" LIST0 reference ")"
+| "Subgraph" "(" LIST0 debug_univ_name ")"
 ]
 
 coercion_class: [
@@ -2364,8 +2367,8 @@ ltac_tacdef_body: [
 ]
 
 withtac: [
-| "with" Tactic.tactic
 |
+| "with" tactic
 ]
 
 glob_constr_with_bindings: [

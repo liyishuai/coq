@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -586,9 +586,9 @@ val add_mutual_definitions :
   -> RetrieveObl.obligation_info list
   -> OblState.t
 
-(** Implementation of the [Obligation n of id : typ with tac] command *)
+(** Implementation of the [Obligation n of id with tac] command *)
 val obligation :
-     int * Names.Id.t option * Constrexpr.constr_expr option
+     int * Names.Id.t option
   -> pm:OblState.t
   -> Genarg.glob_generic_argument option
   -> Proof.t

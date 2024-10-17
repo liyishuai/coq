@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -195,10 +195,10 @@ let evar = repr_ext val_evar
 
 let internal_err =
   let open Names in
-  let coq_prefix =
+  let rocq_prefix =
     MPfile (DirPath.make (List.map Id.of_string ["Init"; "Ltac2"]))
   in
-  KerName.make coq_prefix (Label.of_id (Id.of_string "Internal"))
+  KerName.make rocq_prefix (Label.of_id (Id.of_string "Internal"))
 
 let of_exninfo = of_ext val_exninfo
 let to_exninfo = to_ext val_exninfo

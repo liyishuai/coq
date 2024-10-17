@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -1261,10 +1261,6 @@ let declare_extra_genarg_pprule_with_level wit
           h env sigma pr_econstr_env pr_leconstr_env (fun _env _sigma _ _ -> str "<tactic>") n x) }
   in
   Genprint.register_print0 wit f g h
-
-let declare_extra_vernac_genarg_pprule wit f =
-  let f x = Genprint.PrinterBasic (fun env sigma -> f env sigma pr_constr_expr pr_lconstr_expr pr_raw_tactic_level x) in
-  Genprint.register_vernac_print0 wit f
 
 (** Registering *)
 

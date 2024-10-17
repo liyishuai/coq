@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -323,7 +323,7 @@ let rtauto_tac =
                              str " steps" ++ fnl () ++
                              str "Proof term size : " ++ int (!step_count+ !node_count) ++
                              str " nodes (constants)" ++ fnl () ++
-                             str "Giving proof term to Coq ... ")
+                             str "Giving proof term to Rocq ... ")
         end in
     let tac_start_time = System.get_time () in
     let term = EConstr.of_constr term in

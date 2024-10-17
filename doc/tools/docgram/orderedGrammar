@@ -722,6 +722,11 @@ simple_reserv: [
 | LIST1 ident ":" type
 ]
 
+debug_univ_name: [
+| qualid
+| string
+]
+
 command: [
 | "Goal" type
 | "Pwd"
@@ -765,7 +770,7 @@ command: [
 | "Print" "Scope" scope_name
 | "Print" "Visibility" OPT scope_name
 | "Print" "Implicit" reference
-| "Print" OPT "Sorted" "Universes" OPT ( "Subgraph" "(" LIST0 qualid ")" ) OPT string
+| "Print" OPT "Sorted" "Universes" OPT ( "Subgraph" "(" LIST0 debug_univ_name ")" ) OPT string
 | "Print" "Assumptions" reference
 | "Print" "Opaque" "Dependencies" reference
 | "Print" "Transparent" "Dependencies" reference
@@ -845,7 +850,7 @@ command: [
 | "Attributes" LIST1 attribute SEP ","
 | "Declare" "Instance" ident_decl LIST0 binder ":" term OPT hint_info
 | "Declare" "Scope" scope_name
-| "Obligation" natural OPT ( "of" ident ) OPT ( ":" type OPT ( "with" ltac_expr ) )
+| "Obligation" natural OPT ( "of" ident ) OPT ( "with" ltac_expr )
 | "Next" "Obligation" OPT ( "of" ident ) OPT ( "with" ltac_expr )
 | "Final" "Obligation" OPT ( "of" ident ) OPT ( "with" ltac_expr )
 | "Solve" "Obligations" OPT ( "of" ident ) OPT ( "with" ltac_expr )

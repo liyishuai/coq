@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -15,7 +15,7 @@ open Genredexpr
 open Tac2types
 open Proofview
 
-(** Local reimplementations of tactics variants from Coq *)
+(** Local reimplementations of tactics variants from Rocq *)
 
 val intros_patterns : evars_flag -> intro_pattern list -> unit tactic
 

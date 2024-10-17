@@ -1,5 +1,5 @@
 (************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*         *      The Rocq Prover / The Rocq Development Team           *)
 (*  v      *         Copyright INRIA, CNRS and contributors             *)
 (* <O___,, * (see version control and CREDITS file for authors & dates) *)
 (*   \VV/  **************************************************************)
@@ -24,6 +24,10 @@ type goal_reference =
   | OpenSubgoals
   | NthGoal of int
   | GoalId of Id.t
+
+type debug_univ_name =
+  | NamedUniv of qualid
+  | RawUniv of lstring
 
 type printable =
   | PrintTypingFlags
@@ -50,7 +54,7 @@ type printable =
   | PrintCoercions
   | PrintCoercionPaths of coercion_class * coercion_class
   | PrintCanonicalConversions of qualid or_by_notation list
-  | PrintUniverses of bool * qualid list option * string option
+  | PrintUniverses of bool * debug_univ_name list option * string option
   | PrintHint of qualid or_by_notation
   | PrintHintGoal
   | PrintHintDbName of string
