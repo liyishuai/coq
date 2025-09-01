@@ -93,6 +93,28 @@ Section Well_founded.
 
   Definition Fix (x:A) := Fix_F (Rwf x).
 
+  Section FixPointGen.
+    Hypothesis
+      F_ext :
+      forall (x:A) (f g:forall y:A, R y x -> P y),
+        (forall (y:A) (p q:R y x), f y p = g y q) -> F f = F g.
+
+    Lemma Fix_F_inv_gen : forall (x:A) (r s:Acc x), Fix_F r = Fix_F s.
+    Proof.
+      intro x; induction (Rwf x); intros r s.
+      rewrite <- (Fix_F_eq r); rewrite <- (Fix_F_eq s); intros.
+      apply F_ext; auto.
+    Qed.
+
+    Lemma Fix_eq_gen : forall x:A, Fix x = F (fun (y:A) (p:R y x) => Fix y).
+    Proof.
+      intro x; unfold Fix.
+      rewrite <- Fix_F_eq.
+      apply F_ext; intros.
+      apply Fix_F_inv_gen.
+    Qed.
+  End FixPointGen.
+
   (** Proof that [well_founded_induction] satisfies the fixpoint equation.
       It requires an extra property of the functional *)
 
@@ -103,17 +125,12 @@ Section Well_founded.
 
   Lemma Fix_F_inv : forall (x:A) (r s:Acc x), Fix_F r = Fix_F s.
   Proof.
-   intro x; induction (Rwf x); intros r s.
-   rewrite <- (Fix_F_eq r); rewrite <- (Fix_F_eq s); intros.
-   apply F_ext; auto.
+    auto using Fix_F_inv_gen.
   Qed.
 
   Lemma Fix_eq : forall x:A, Fix x = F (fun (y:A) (p:R y x) => Fix y).
   Proof.
-   intro x; unfold Fix.
-   rewrite <- Fix_F_eq.
-   apply F_ext; intros.
-   apply Fix_F_inv.
+    auto using Fix_eq_gen.
   Qed.
 
  End FixPoint.

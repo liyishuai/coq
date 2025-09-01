@@ -10,10 +10,6 @@ git_download coq_dpdgraph
 if [ "$DOWNLOAD_ONLY" ]; then exit 0; fi
 
 ( cd "${CI_BUILD_DIR}/coq_dpdgraph"
-  if ! [ -e Make_coq ]; then
-      autoconf
-      ./configure
-  fi
   make
   make test-suite
 )
