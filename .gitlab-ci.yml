@@ -1176,9 +1176,9 @@ plugin:plugin-tutorial:
     - make -j "$NJOBS" plugin-tutorial
 
 plugin:ci-mltac2:
-  extends: .ci-template
+  extends: .ci-template-flambda
   needs:
-  - build:base
+  - build:edge+flambda
 
 plugin:ci-quickchick:
   extends: .ci-template-flambda
